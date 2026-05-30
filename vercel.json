@@ -4,7 +4,7 @@
   "framework": "vite",
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
   "functions": {
-    "api/ai/chat.ts": {
+    "api/ai/chat.js": {
       "maxDuration": 30
     }
   }

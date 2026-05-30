@@ -18,9 +18,12 @@ function extractReply(data: unknown): string {
 
   const payload = data as {
     choices?: Array<{ message?: { content?: string } }>;
-    error?: { message?: string };
+    error?: { message?: string } | string;
   };
 
+  if (typeof payload.error === "string") {
+    throw new Error(payload.error);
+  }
   if (payload.error?.message) {
     throw new Error(payload.error.message);
   }
@@ -33,6 +36,25 @@ function extractReply(data: unknown): string {
   return content;
 }
 
+function parseErrorBody(text: string, status: number): string {
+  if (text.includes("FUNCTION_INVOCATION_FAILED")) {
+    return "Campus AI server crashed on Vercel. Redeploy the latest code from GitHub.";
+  }
+  try {
+    const json = JSON.parse(text) as { error?: string };
+    if (json.error) return json.error;
+  } catch {
+    /* not json */
+  }
+  if (status === 404) {
+    return "Campus AI endpoint not found. Redeploy and ensure api/ai/chat is deployed.";
+  }
+  if (status === 503) {
+    return "Campus AI is not configured. Add OPENROUTER_API_KEY in Vercel Environment Variables.";
+  }
+  return "Campus AI is temporarily unavailable.";
+}
+
 export async function sendChatMessage(role: ChatRole, history: ChatMessage[], userMessage: string): Promise<string> {
   const messages: ApiMessage[] = toApiMessages(role, [...history, { id: "pending", role: "user", content: userMessage }]);
 
@@ -42,19 +64,18 @@ export async function sendChatMessage(role: ChatRole, history: ChatMessage[], us
     body: JSON.stringify({ messages }),
   });
 
+  const text = await res.text();
+
   let data: unknown;
   try {
-    data = await res.json();
+    data = JSON.parse(text);
   } catch {
-    if (res.status === 404) {
-      throw new Error("Campus AI endpoint not found. Redeploy the latest code and add OPENROUTER_API_KEY in Vercel Environment Variables.");
-    }
-    throw new Error("Campus AI could not read the server response.");
+    throw new Error(parseErrorBody(text, res.status));
   }
 
   if (!res.ok) {
     const err = data as { error?: string };
-    throw new Error(err.error || "Campus AI is temporarily unavailable.");
+    throw new Error(err.error || parseErrorBody(text, res.status));
   }
 
   return extractReply(data);
