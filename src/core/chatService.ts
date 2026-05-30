@@ -46,6 +46,9 @@ export async function sendChatMessage(role: ChatRole, history: ChatMessage[], us
   try {
     data = await res.json();
   } catch {
+    if (res.status === 404) {
+      throw new Error("Campus AI endpoint not found. Redeploy the latest code and add OPENROUTER_API_KEY in Vercel Environment Variables.");
+    }
     throw new Error("Campus AI could not read the server response.");
   }
 
