@@ -1,7 +1,7 @@
 {
   "name": "enrollmentcollegesystem",
-  "version": "1.0.0",
-  "description": "Standalone role-based healthcare system in React + TypeScript + Tailwind",
+  "version": "1.0.1",
+  "description": "College Enrollment System — Candy Red Edition with Campus AI, admin/student portals, and Vercel deployment",
   "private": true,
   "scripts": {
     "dev": "vite",
